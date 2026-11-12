@@ -11,6 +11,11 @@ admins can export as NDJSON files. It explains:
 
 ![The first screen of the field guide](screenshots/laptop-1440-hero.png)
 
+## View it online
+
+Open <https://solid-robot-vo3n62m.pages.github.io/>. This site is visible to
+members of this organization only. GitHub asks you to sign in first.
+
 ## How to open it
 
 The page needs no install, no build, and no internet connection.
