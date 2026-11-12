@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Copilot usage metrics: the NDJSON reports, explained</title>
+<link rel="stylesheet" href="styles.css">
+<!--
+THESIS: A field guide to the Copilot usage metrics NDJSON reports. It refuses the dark API-reference page and the KPI-card dashboard.
+OWN-WORLD: Cool white sheet, blue-black ink, six report-family inks used as transit-style lines and punched specimen tags. System sans for text, monospace only for real field names and data. Hairline rules, plates with soft shadows, leader lines from fields to notes.
+STORY: The reader sees one NDJSON line, learns the six report families and how they join, reads a record field by field, learns how to get the files, how to use them, and where they mislead.
+FIRST VIEWPORT: Left, title and plain promise. Right, a raw NDJSON specimen with three labeled lines. Contents rail at far left. Sources sit in a right margin beside each claim.
+FORM: Field guide. Stagings: margin commentary for sources, full-state trace for the team join.
+-->
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="frame">
+  <nav class="rail" aria-label="Contents">
+    <a class="rail-title" href="#top">NDJSON field guide</a>
+    <ol class="rail-list">
+      <li><a href="#top">One line, one record</a></li>
+      <li><a href="#reports">The six reports</a></li>
+      <li><a href="#finder">Which report answers my question?</a></li>
+      <li><a href="#record">Read a record</a></li>
+      <li><a href="#get">Get the data</a></li>
+      <li><a href="#phases">Adoption phases</a></li>
+      <li><a href="#teams">Team metrics: the join</a></li>
+      <li><a href="#outcomes">Connect to delivery</a></li>
+      <li><a href="#ideas">Ideas for your own team</a></li>
+      <li><a href="#limits">Limits</a></li>
+      <li><a href="#sources">Sources</a></li>
+    </ol>
+    <p class="rail-foot">All sample data on this page is synthetic. Checked against GitHub Docs on 11 November 2026.</p>
+  </nav>
+
+  <main id="main">
+
+    <!-- ============ HERO ============ -->
+    <header id="top" class="hero section">
+      <div class="hero-copy">
+        <h1>Copilot usage metrics, one line at a time</h1>
+        <p class="lede">GitHub gives enterprise and organization admins daily Copilot usage reports as NDJSON files. This guide shows what is in those files, how the reports connect, how to get them, and what they can and cannot tell you.</p>
+        <ul class="hero-facts">
+          <li><strong>NDJSON</strong> means newline-delimited JSON. Each line in the file is one complete JSON record.</li>
+          <li>The exports mirror the API output, so you can load them into BI tools and keep them for long-term reporting.</li>
+          <li>Each fact links to the public GitHub Docs page it comes from. Our own ideas and advice are marked as such.</li>
+        </ul>
+        <p class="hero-src">Sources: <a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/team-level-metrics#fetching-the-reports">Team-level metrics</a>, <a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/reconciling-usage-metrics#time-windows">Reconciling metrics</a></p>
+      </div>
+
+      <figure class="specimen plate" aria-labelledby="spec-cap">
+        <div class="specimen-head">
+          <span class="tag tag-u1">users-1-day.ndjson</span>
+          <span class="specimen-meta">3 of many lines</span>
+        </div>
+        <ol class="ndjson" id="hero-lines"></ol>
+        <figcaption id="spec-cap">Select a line to read it field by field. These three users are synthetic.</figcaption>
+      </figure>
+    </header>
+
+    <!-- ============ REPORTS MAP ============ -->
+    <section id="reports" class="section">
+      <div class="row">
+        <div class="prose">
+          <h2>The six reports and how they connect</h2>
+          <p>Each report comes at two scopes: <strong>enterprise</strong> and <strong>organization</strong>. Organization reports also carry <code>organization_id</code>. The reports differ in what one line stands for: a whole organization, one user, one team membership, or one repository.</p>
+          <p>Lines on the map show how the reports relate. A solid line is a safe connection. A dashed line is a connection that does not work.</p>
+        </div>
+        <aside class="notes">
+          <p class="note"><span class="note-k">Source</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/copilot-usage-metrics#api-and-export-fields">Data available: API and export fields</a></p>
+          <p class="note"><span class="note-k">Source</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/team-level-metrics#entity-level-reports">Team-level metrics: entity-level reports</a></p>
+        </aside>
+      </div>
+
+      <div class="map-wrap">
+        <figure class="plate map-plate">
+          <svg id="map" viewBox="0 0 1200 470" role="group" aria-label="Map of the six Copilot usage metrics reports"></svg>
+          <figcaption class="map-legend">
+            <span><svg width="34" height="10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="4"/></svg> Works</span>
+            <span><svg width="34" height="10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="3" stroke-dasharray="6 5"/></svg> Does not work</span>
+            <span>Select a report to see what one line holds.</span>
+          </figcaption>
+        </figure>
+        <article class="plate report-card" id="report-card" aria-live="polite"></article>
+      </div>
+
+      <div class="matrix-wrap">
+        <table class="matrix">
+          <caption>What each report carries</caption>
+          <thead>
+            <tr><th scope="col">Report</th><th scope="col">One line is</th><th scope="col">User IDs</th><th scope="col">Active-user counts</th><th scope="col">Pull request data</th><th scope="col">Adoption phase</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row"><span class="tag tag-agg1">*-1-day totals</span></th><td>The organization or enterprise, one day</td><td class="no">No</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Per phase totals</td></tr>
+            <tr><th scope="row"><span class="tag tag-agg28">*-28-day totals</span></th><td>A 28-day wrapper with 28 daily totals</td><td class="no">No</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Per phase totals</td></tr>
+            <tr><th scope="row"><span class="tag tag-u1">users-1-day</span></th><td>One user, one day</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="yes">Per user</td></tr>
+            <tr><th scope="row"><span class="tag tag-u28">users-28-day</span></th><td>One user, each day in the window</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="yes">Per user</td></tr>
+            <tr><th scope="row"><span class="tag tag-teams">user-teams-1-day</span></th><td>One user and team pair, one day</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+            <tr><th scope="row"><span class="tag tag-repos">repos-1-day</span></th><td>One repository with pull request activity, one day</td><td class="no">No</td><td class="no">No</td><td class="yes">Yes, plus review times and code review outcomes</td><td class="no">No</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ QUESTION FINDER ============ -->
+    <section id="finder" class="section">
+      <div class="row">
+        <div class="prose">
+          <h2>Which report answers my question?</h2>
+          <p>Start from the question, not the file. Select a question to see the report and the fields to use.</p>
+        </div>
+        <aside class="notes">
+          <p class="note"><span class="note-k">Source</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/copilot-usage-metrics">Data available in Copilot usage metrics</a></p>
+          <p class="note"><span class="note-k">ROI</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/copilot-usage-metrics#impact-dashboard-metrics">Impact dashboard metrics, footnote 1</a></p>
+        </aside>
+      </div>
+      <div class="finder">
+        <div class="finder-list" role="listbox" aria-label="Questions" id="finder-list"></div>
+        <div class="plate finder-answer" id="finder-answer" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- ============ RECORD EXPLORER ============ -->
+    <section id="record" class="section">
+      <div class="row">
+        <div class="prose">
+          <h2>Read a record, field by field</h2>
+          <p>Pick a report, then select any field name. The field note explains it in plain words, warns you about common mistakes, and links to the docs. Use the group buttons to light up related fields.</p>
+        </div>
+        <aside class="notes">
+          <p class="note"><span class="note-k">Shapes</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/example-schema">Example schema</a></p>
+          <p class="note"><span class="note-k">Data</span>Values are synthetic. Field names and shapes follow the public example schema.</p>
+        </aside>
+      </div>
+
+      <div class="explorer plate" id="explorer">
+        <div class="explorer-bar">
+          <div class="tabs" role="tablist" aria-label="Sample record" id="rec-tabs"></div>
+          <div class="view-toggle" role="group" aria-label="Display">
+            <button type="button" class="seg" data-view="pretty" aria-pressed="true">Pretty</button>
+            <button type="button" class="seg" data-view="line" aria-pressed="false">As one line</button>
+          </div>
+        </div>
+        <div class="groups" id="rec-groups" role="group" aria-label="Highlight a field group"></div>
+        <p class="rec-note" id="rec-note"></p>
+        <div class="explorer-body">
+          <pre class="json" id="rec-json" tabindex="0" aria-label="Sample record"></pre>
+          <article class="field-card" id="field-card" aria-live="polite"></article>
+          <svg class="leader" id="leader" aria-hidden="true"><path d=""/><circle r="4"/></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ GET THE DATA ============ -->
+    <section id="get" class="section">
+      <div class="row">
+        <div class="prose">
+          <h2>Get the data</h2>
+          <p>There are two ways: export from the dashboard, or call the REST API. Both need the <strong>Copilot usage metrics</strong> policy turned on. For the REST API, the docs say the policy must be <strong>Enabled everywhere</strong> for the enterprise.</p>
+        </div>
+        <aside class="notes">
+          <p class="note"><span class="note-k">Policy</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/how-tos/administer-copilot/view-usage-and-adoption#prerequisite">Viewing the dashboard: prerequisite</a></p>
+          <p class="note"><span class="note-k">API</span><a href="https://docs.github.com/en/enterprise-cloud@latest/rest/copilot/copilot-usage-metrics">REST API endpoints</a></p>
+        </aside>
+      </div>
+
+      <div class="paths">
+        <article class="plate path">
+          <h3>From the dashboard</h3>
+          <ol class="steps">
+            <li>Go to your enterprise.</li>
+            <li>Select the <strong>Insights</strong> tab.</li>
+            <li>In the left sidebar, select <strong>Copilot usage</strong>.</li>
+            <li>Export the NDJSON report from the dashboard.</li>
+          </ol>
+          <p class="small">The docs give these steps for an enterprise. The dashboard is also available at organization level.</p>
+          <p class="src"><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/how-tos/administer-copilot/view-usage-and-adoption#accessing-the-dashboard">Accessing the dashboard</a> · <a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/how-tos/administer-copilot/view-usage-and-adoption#using-copilot-chat-to-analyze-exported-data">Exporting NDJSON</a></p>
+        </article>
+
+        <article class="plate path">
+          <h3>From the REST API</h3>
+          <ol class="steps">
+            <li>Call the endpoint for the report and day you want.</li>
+            <li>The response holds <code>download_links</code>: download links that expire after a short time.</li>
+            <li>Download each file before its link expires. The rows are in the files, not in the API response.</li>
+          </ol>
+          <div class="code">
+            <div class="code-head"><span>Response shape</span><button type="button" class="copy" data-copy="resp" aria-label="Copy response example"><span class="ic ic-copy"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5v-1a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h1"/></svg></span><span class="ic ic-done"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg></span><span class="copy-label">Copy</span></button></div>
+<pre id="resp">{
+  "download_links": [
+    "https://example.com/copilot-users-report-1.ndjson"
+  ],
+  "report_day": "2026-10-19"
+}</pre>
+          </div>
+          <p class="src"><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/team-level-metrics#fetching-the-reports">Fetching the reports</a></p>
+        </article>
+      </div>
+
+      <div class="endpoints plate">
+        <div class="endpoints-head">
+          <h3>Endpoints</h3>
+          <div class="view-toggle" role="group" aria-label="Scope">
+            <button type="button" class="seg" data-scope="org" aria-pressed="true">Organization</button>
+            <button type="button" class="seg" data-scope="ent" aria-pressed="false">Enterprise</button>
+          </div>
+        </div>
+        <table class="ep-table" id="ep-table">
+          <thead><tr><th scope="col">Report</th><th scope="col">GET</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p class="small">Send <code>Accept: application/vnd.github+json</code> and <code>X-GitHub-Api-Version: 2026-03-10</code>. Reports with <code>?day=</code> cover one day. Reports ending in <code>/latest</code> cover the most recent 28 days.</p>
+      </div>
+
+      <div class="row">
+        <div class="prose">
+          <h3>Who can get it</h3>
+          <table class="plain">
+            <thead><tr><th scope="col">Scope</th><th scope="col">People</th><th scope="col">Classic token scopes</th></tr></thead>
+            <tbody>
+              <tr><td>Enterprise reports</td><td>Enterprise owners, billing managers, and users with the fine-grained permission <strong>View Enterprise Copilot Metrics</strong></td><td><code>manage_billing:copilot</code> or <code>read:enterprise</code></td></tr>
+              <tr><td>Organization reports</td><td>Organization owners and users with the fine-grained permission <strong>View Organization Copilot Metrics</strong></td><td><code>read:org</code></td></tr>
+              <tr><td>One organization, no enterprise access</td><td>A custom organization role with the <strong>View organization Copilot metrics</strong> permission</td><td></td></tr>
+            </tbody>
+          </table>
+          <h3>When it is ready</h3>
+          <ul class="ticks">
+            <li>Data for a day is available within <strong>two full UTC days</strong> after that day closes. Recent days can look low until processing finishes.</li>
+            <li>If you export before that window closes, export again later.</li>
+            <li>Enterprise reports start on 10 October 2025. History goes back up to one year.</li>
+            <li>Organization-level reports start on 12 December 2025.</li>
+          </ul>
+        </div>
+        <aside class="notes">
+          <p class="note"><span class="note-k">Access</span><a href="https://docs.github.com/en/enterprise-cloud@latest/rest/copilot/copilot-usage-metrics#get-copilot-enterprise-usage-metrics-for-a-specific-day">Enterprise endpoints</a>, <a href="https://docs.github.com/en/enterprise-cloud@latest/rest/copilot/copilot-usage-metrics#get-copilot-organization-usage-metrics-for-a-specific-day">organization endpoints</a></p>
+          <p class="note"><span class="note-k">Role</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/how-tos/administer-copilot/view-usage-and-adoption#prerequisite">Custom organization role</a></p>
+          <p class="note"><span class="note-k">Timing</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/reconciling-usage-metrics#delayed-telemetry">Delayed telemetry</a>, <a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/reconciling-usage-metrics#export-timing">export timing</a></p>
+          <p class="note"><span class="note-k">History</span><a href="https://docs.github.com/en/enterprise-cloud@latest/rest/copilot/copilot-usage-metrics#get-copilot-enterprise-usage-metrics-for-a-specific-day">REST API</a>, <a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/reconciling-usage-metrics#organization-attribution">organization attribution</a></p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ============ PHASES ============ -->
+    <section id="phases" class="section">
+      <div class="row">
+        <div class="prose">
+          <h2>Use it: adoption phases</h2>
+          <p>Copilot puts each user into an AI adoption phase. A user is <strong>engaged</strong> with a feature when they use it on at least <strong>two different days in the last 28 days</strong>. GitHub checks the phases from the top down and gives each user the highest phase they qualify for. It calculates the phase again every day.</p>
+        </div>
+        <aside class="notes">
+          <p class="note"><span class="note-k">Rules</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/copilot-usage-metrics#ai-adoption-phase-fields">AI adoption phase fields</a></p>
+          <p class="note"><span class="note-k">Signals</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/interpret-copilot-metrics#reviewing-adoption-cohorts">Reviewing adoption cohorts</a></p>
+        </aside>
+      </div>
+
+      <ol class="ladder">
+        <li class="rung r0">
+          <span class="rung-n">0</span>
+          <h3>No Cohort <span class="alias">Chat-first users in the dashboard</span></h3>
+          <p>Not engaged with any feature that qualifies. This does not mean inactive. A common case: chat or agent-mode questions that never produce completions or file edits.</p>
+        </li>
+        <li class="rung r1">
+          <span class="rung-n">1</span>
+          <h3>Code first</h3>
+          <p>Engaged with inline code completions (<code>code_completion</code>) or agent edits written to files (<code>agent_edit</code>).</p>
+        </li>
+        <li class="rung r2">
+          <span class="rung-n">2</span>
+          <h3>Agent first</h3>
+          <p>Engaged with exactly one agent surface: Copilot CLI, Copilot cloud agent, or Copilot code review.</p>
+        </li>
+        <li class="rung r3">
+          <span class="rung-n">3</span>
+          <h3>Multi-agent</h3>
+          <p>Engaged with the Copilot app, or with two or more of the Phase 2 agent surfaces.</p>
+        </li>
+      </ol>
+
+      <div class="row">
+        <div class="prose">
+          <h3>Count the right population</h3>
+          <p>In the totals reports, each phase entry has two user counts. <code>total_engaged_users</code> counts users who were active on that one day. <code>users_in_phase_28d</code> counts everyone in the phase over the rolling 28 days. For a 28-day rate per user, the docs say:</p>
+          <ol class="steps compact">
+            <li>Add the daily <code>total_pull_requests_merged</code> values.</li>
+            <li>Add the matching daily <code>users_in_phase_28d</code> values.</li>
+            <li>Divide the first total by the second, then multiply by 28.</li>
+          </ol>
+          <p>Agent apps built by partners do not change a user's phase. Only the GitHub Copilot features listed above count.</p>
+        </div>
+        <aside class="notes">
+          <p class="note"><span class="note-k">Method</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/copilot-usage-metrics#ai-adoption-phase-fields">Per-phase denominator</a></p>
+          <p class="note"><span class="note-k">Compare</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/reconciling-usage-metrics#metric-alignment">Dashboard vs export</a></p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ============ TEAM JOIN TRACE ============ -->
+    <section id="teams" class="section">
+      <div class="row">
+        <div class="prose">
+          <h2>Team metrics: build them with a join</h2>
+          <p>There is no ready-made team report. You join the daily <span class="tag tag-teams">user-teams-1-day</span> report with the daily <span class="tag tag-u1">users-1-day</span> report on <code>user_id</code>, <code>day</code>, and the organization or enterprise ID. Then you group by team. Step through the example to see every row move.</p>
+        </div>
+        <aside class="notes">
+          <p class="note"><span class="note-k">Recipe</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/team-level-metrics#how-to-construct-team-level-metrics">How to construct team-level metrics</a></p>
+          <p class="note"><span class="note-k">No code</span>The impact dashboard can also show team-level adoption cohorts without a join. <a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/team-level-metrics">Team-level metrics, note</a></p>
+        </aside>
+      </div>
+
+      <div class="trace plate" id="trace">
+        <div class="trace-bar">
+          <button type="button" class="btn" id="trace-prev" aria-label="Previous step">Back</button>
+          <div class="trace-steps" role="tablist" aria-label="Join steps" id="trace-steps"></div>
+          <button type="button" class="btn btn-primary" id="trace-next" aria-label="Next step">Next</button>
+        </div>
+        <p class="trace-say" id="trace-say" aria-live="polite"></p>
+        <div class="trace-grid" id="trace-grid"></div>
+      </div>
+
+      <div class="row">
+        <div class="prose">
+          <h3>Rules that keep team numbers honest</h3>
+          <ul class="ticks">
+            <li><strong>Join day to day.</strong> Do not join the 28-day per-user report with a one-day team snapshot. Activity goes to the wrong teams when membership changed.</li>
+            <li><strong>Small teams are left out.</strong> Teams with fewer than 5 seated Copilot users that day are not in the user-teams report.</li>
+            <li><strong>People on two teams count twice.</strong> For organization totals, use the per-user report without the join.</li>
+            <li><strong>Count people, do not add them.</strong> For a multi-day window, use <code>COUNT(DISTINCT user_id)</code> over all joined rows. Do not add daily counts.</li>
+          </ul>
+        </div>
+        <aside class="notes">
+          <p class="note"><span class="note-k">Caveats</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/team-level-metrics#limitations-and-caveats">Limitations and caveats</a></p>
+          <p class="note"><span class="note-k">Windows</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/team-level-metrics#building-rolling-window-team-reports">Rolling-window team reports</a></p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ============ OUTCOMES ============ -->
+    <section id="outcomes" class="section">
+      <div class="row">
+        <div class="prose">
+          <h2>Connect usage to delivery</h2>
+          <p>Usage tells you who uses what. Delivery data tells you what shipped. The reports give you some delivery signals, but not per user.</p>
+          <ul class="ticks">
+            <li><strong>Organization or enterprise:</strong> the <code>pull_requests</code> object in the totals reports gives created, reviewed, and merged counts and median time to merge, with Copilot cloud agent and code review splits.</li>
+            <li><strong>Repository:</strong> <span class="tag tag-repos">repos-1-day</span> adds review stage times and whether developers acted on Copilot code review comments.</li>
+            <li><strong>By phase:</strong> <code>totals_by_ai_adoption_phase</code> gives pull request averages for each phase.</li>
+            <li><strong>Per user:</strong> per-user reports have no pull request data. The docs suggest joining on <code>user_login</code> with data from the REST API endpoints for pull requests.</li>
+          </ul>
+          <p>Compare periods and groups, then ask why. A difference between groups is an <strong>association</strong>. It does not show that Copilot caused it.</p>
+        </div>
+        <aside class="notes">
+          <p class="note"><span class="note-k">PR fields</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/copilot-usage-metrics#pull-request-activity-fields">Pull request activity fields</a></p>
+          <p class="note"><span class="note-k">Per user</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/copilot-usage-metrics#comparing-byok-and-copilot-hosted-usage">Join with pull request data</a></p>
+          <p class="note"><span class="note-k">Causation</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/interpret-copilot-metrics#reviewing-the-adoption-multiplier">Reviewing the adoption multiplier</a></p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ============ PARTNER IDEAS ============ -->
+    <section id="ideas" class="section">
+      <div class="row">
+        <div class="prose">
+          <h2>Ideas for showing your own team's impact</h2>
+          <p>These are ideas to start a discussion, not a method. They apply to data you are allowed to see, for example the organizations your own delivery teams work in.</p>
+        </div>
+        <aside class="notes">
+          <p class="note"><span class="note-k">Status</span>Ideas from this guide, not from GitHub Docs. The linked docs support each data point.</p>
+        </aside>
+      </div>
+      <div class="ideas">
+        <article class="idea">
+          <h3>Track the phase mix over time</h3>
+          <p>Plot <code>users_in_phase_28d</code> per phase each week. Look for movement from Phase 1 to Phase 2 and 3 after enablement.</p>
+          <p class="src"><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/interpret-copilot-metrics#reviewing-adoption-cohorts">Adoption cohorts</a></p>
+        </article>
+        <article class="idea">
+          <h3>Give each delivery team its own view</h3>
+          <p>Use the daily join to show adoption and activity per team. Remember the five-seat threshold.</p>
+          <p class="src"><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/team-level-metrics">Team-level metrics</a></p>
+        </article>
+        <article class="idea">
+          <h3>Watch the pull request lifecycle</h3>
+          <p>Follow merged counts, median time to merge, and review stage times in your project repositories with <span class="tag tag-repos">repos-1-day</span>.</p>
+          <p class="src"><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/copilot-usage-metrics#pull-request-review-time-fields">Review time fields</a></p>
+        </article>
+        <article class="idea">
+          <h3>See which shared customizations land</h3>
+          <p>If your teams share skills, custom agents, or MCP servers, look for their names across many users' records.</p>
+          <p class="src"><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/interpret-copilot-metrics#reviewing-customization-adoption-with-the-api">Customization adoption</a></p>
+        </article>
+        <article class="idea">
+          <h3>Pair numbers with people</h3>
+          <p>Add surveys or retrospectives. The docs suggest this for a full picture of impact.</p>
+          <p class="src"><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/interpret-copilot-metrics#acting-on-your-insights">Acting on your insights</a></p>
+        </article>
+        <article class="idea">
+          <h3>Use a ready-made dashboard</h3>
+          <p>Community dashboards can read these same NDJSON exports. Check what a tool does with user data before you load files into it.</p>
+          <p class="src">Our note, not from GitHub Docs.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============ LIMITS ============ -->
+    <section id="limits" class="section">
+      <div class="row">
+        <div class="prose">
+          <h2>Limits: read these before you present numbers</h2>
+          <p>The data is useful for trends and enablement. It is not complete, and it is not a score for people.</p>
+        </div>
+        <aside class="notes">
+          <p class="note"><span class="note-k">Source</span><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/reconciling-usage-metrics">Reconciling Copilot usage metrics</a></p>
+        </aside>
+      </div>
+      <div class="limits">
+        <article class="limit">
+          <h3>Telemetry gaps</h3>
+          <p>Detailed breakdowns need IDE telemetry. If a developer turns it off, or a proxy blocks it, the user can still count as active, but feature, language, and lines-of-code data stay empty.</p>
+          <p class="src"><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/reconciling-usage-metrics#troubleshooting-missing-usage-data">Missing usage data</a></p>
+        </article>
+        <article class="limit">
+          <h3>CLI is counted apart</h3>
+          <p>Copilot CLI usage does not add to IDE active-user counts or other IDE metrics. The dashboard charts do not include CLI usage.</p>
+          <p class="src"><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/reconciling-usage-metrics#prerequisite">Reconciling: prerequisite</a></p>
+        </article>
+        <article class="limit">
+          <h3>Two-day delay</h3>
+          <p>A day is complete within two full UTC days. A drop in the most recent days is often only late data.</p>
+          <p class="src"><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/reconciling-usage-metrics#delayed-telemetry">Delayed telemetry</a></p>
+        </article>
+        <article class="limit">
+          <h3>Numbers do not add up across scopes</h3>
+          <p>One user can appear in many organizations but only once in the enterprise. Do not add organization totals to get an enterprise total.</p>
+          <p class="src"><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/reconciling-usage-metrics#organization-attribution">Organization attribution</a></p>
+        </article>
+        <article class="limit">
+          <h3>Unknown and capped values</h3>
+          <p><code>Unknown</code> values are expected when the IDE cannot tell the language, mode, or model. Customization arrays keep 25 named entries, then group the rest as <code>other</code>.</p>
+          <p class="src"><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/reconciling-usage-metrics#unknown-values">Unknown values</a></p>
+        </article>
+        <article class="limit">
+          <h3>Association, not causation</h3>
+          <p>The adoption multiplier compares different groups of people. Team mix, project type, and seniority can matter as much as Copilot.</p>
+          <p class="src"><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/interpret-copilot-metrics#reviewing-the-adoption-multiplier">Adoption multiplier</a></p>
+        </article>
+        <article class="limit">
+          <h3>No ROI in the files</h3>
+          <p>Return-on-investment estimates are only in the impact dashboard. They are estimates, not financial results, and they are not in the API or NDJSON.</p>
+          <p class="src"><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/copilot-usage-metrics#impact-dashboard-metrics">Impact dashboard metrics</a></p>
+        </article>
+        <article class="limit">
+          <h3>Not a productivity scorecard</h3>
+          <p>The docs warn against using the multiplier as a standalone measure of productivity, or any single peer value as a target. Our advice: do not use these files to rank individual developers.</p>
+          <p class="src"><a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-usage-metrics/interpret-copilot-metrics#reviewing-industry-comparisons">Industry comparisons</a></p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============ SOURCES ============ -->
+    <section id="sources" class="section">
+      <h2>Sources</h2>
+      <p class="small">GitHub Docs, Enterprise Cloud version. Read on 11 November 2026. Docs change often. Check the source before you rely on a detail.</p>
+      <ul class="sources" id="sources-list"></ul>
+      <p class="small fine">Sample data on this page is synthetic. Usernames such as dev-01 and IDs such as 5001 are invented.</p>
+    </section>
+
+  </main>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
